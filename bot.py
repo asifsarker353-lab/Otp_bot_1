@@ -190,14 +190,30 @@ async def handle_document(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         file = await context.bot.get_file(document.file_id)
         temp_path = "temp_up.txt"
         await file.download_to_drive(temp_path)
+        
         with open(temp_path, "r", encoding="utf-8") as f_in:
             new_lines = [line.strip() for line in f_in if line.strip() and not line.startswith("#")]
-        with open("master_numbers.txt", "w", encoding="utf-8") as f_out:
+
+        # Read existing numbers to prevent duplicates
+        existing_numbers = set()
+        if os.path.exists("master_numbers.txt"):
+            with open("master_numbers.txt", "r", encoding="utf-8") as f_ext:
+                for line in f_ext:
+                    if line.strip():
+                        existing_numbers.add(line.strip())
+
+        added_count = 0
+        with open("master_numbers.txt", "a", encoding="utf-8") as f_out:
             for line in new_lines:
-                f_out.write(f"{line}\n")
+                if line not in existing_numbers:
+                    f_out.write(f"{line}\n")
+                    existing_numbers.add(line)
+                    added_count += 1
+
         if os.path.exists(temp_path):
             os.remove(temp_path)
-        await update.message.reply_text(f"✅ Numbers Updated! Total: {len(new_lines)}")
+
+        await update.message.reply_text(f"✅ Numbers Appended Successfully!\n➕ Newly Added: `{added_count}` numbers", parse_mode="Markdown")
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {e}")
 
